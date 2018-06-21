@@ -1,0 +1,38 @@
+## Runtime configuration for the entangle application.
+##
+
+core:
+  logging: WARN
+
+logging:
+  config: ../etc/logging.yml
+
+redis:
+  host: localhost
+  port: 6379
+  decode_responses: true
+
+mysql:
+  host: localhost
+  port: 3306
+  user: duduba
+  password: ilovedudu
+  database: chaos
+
+entangle:
+  T_JZG_JBXX:
+    pk: ZGH
+    target: users
+    fields: {'ZGH':'work_id', 'XM':'name', 'DZXX':'email', 'XBM':'sex', 'SSEJDWM':'org_1', 'SSDWM':'org_2', 'PRZYJSZWJBM':'position_level', 'XWM':'degree_code'}
+    rules:
+      PRZYJSZWJBM: {'正高级':'050', '副高级':'040', '中级':'030', '初级':'020', '员级':'010'}
+  T_ZZGL_XZJG:
+    pk: DWDM
+    target: organizations
+    fields: {'DWDM':'code', 'DWBZMC':'name', 'DWCC':'level', 'SSDWBM':'parent_code', 'DWLBM':'org_type', 'SFSY':'enabled'}
+  T_ZXBZ_XW:
+    pk: XWDM
+    target: degrees
+    fields: {'XWDM':'code', 'XWMC':'name', 'CC':'level', 'LS':'parent_code', 'SFSY':'enabled'}
+
+
