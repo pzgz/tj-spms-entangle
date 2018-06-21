@@ -35,4 +35,3 @@ entangle:
     target: degrees
     fields: {'XWDM':'code', 'XWMC':'name', 'CC':'level', 'LS':'parent_code', 'SFSY':'enabled'}
 
-
