@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """ Implement the cmd2 command.
 
 """

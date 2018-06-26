@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import os
 import redis
 import pymysql
+# import cx_Oracle
 
 from ..core import config
+from .oracle import Connection
 
-__all__ = 'get_redis_connection', 'get_mysql_connection'
+__all__ = 'get_redis_connection', 'get_mysql_connection', 'get_oracle_connection'
 
 redis_pool = None
 # redis_pool = redis.ConnectionPool(host=config.redis.host,
@@ -30,4 +33,11 @@ def get_mysql_connection():
                                 database=config.mysql.database,
                                 charset='utf8mb4',
                                 cursorclass=pymysql.cursors.DictCursor)
+    return connection
+
+
+def get_oracle_connection():
+    connection = Connection(user=config.oracle.user, 
+                            password=config.oracle.password, 
+                            dsn='{}:{}/{}'.format(config.oracle.host, config.oracle.port, config.oracle.database))
     return connection

@@ -8,4 +8,4 @@ from .resource import  get_mysql_connection
 from .resource import get_redis_connection
 
 
-__all__ = "cmd1", "cmd2", "get_mysql_connection", "get_redis_connection"
+__all__ = "cmd1", "cmd2", "get_mysql_connection", "get_oracle_connection", "get_redis_connection"

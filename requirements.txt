@@ -5,6 +5,7 @@
 PyYAML>=3.11
 coloredlogs
 pymysql
+cx_oracle
 redis
 redis-py
 

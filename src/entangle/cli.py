@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """ Implementation of the command line interface.
 
 """
@@ -30,6 +32,8 @@ def main(argv=None):
     logger.start(args.warn)
     logger.debug("starting execution")
     config.load(args.config)
+
+    os.environ['NLS_LANG'] = config.oracle.nls_lang
 
     # logger.info('{}'.format(config.entangle))
     
@@ -64,7 +68,7 @@ def _args(argv=None):
     parser.add_argument("-v", "--version", action="version",
             version="entangle {:s}".format(__version__),
             help="print version and exit")
-    parser.add_argument("-w", "--warn", default="WARN",
+    parser.add_argument("-w", "--warn", default="DEBUG",
             help="logger warning level [WARN]")
     common = ArgumentParser(add_help=False)  # common subcommand arguments
     common.add_argument("--name", "-n", default="World", help="greeting name")

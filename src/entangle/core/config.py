@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """ Global application configuration.
 
 This module defines a global configuration object. Other modules should use
