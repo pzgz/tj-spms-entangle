@@ -4,7 +4,8 @@
 from .cmd1 import main as cmd1
 from .cmd2 import main as cmd2
 
-from .resource import  get_mysql_connection
+from .resource import get_mysql_connection
+from .resource import get_oracle_connection
 from .resource import get_redis_connection
 
 

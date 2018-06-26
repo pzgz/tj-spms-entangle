@@ -116,9 +116,3 @@ def duplicate(table_name):
         connection.close()
 
     # logger.debug(redis_conn.rpop(target_table))
-
-def makedict(cursor):
-    cols = [d[0] for d in cursor.description]
-    def createrow(*args):
-        return dict(zip(cols, args))
-    return createrow
