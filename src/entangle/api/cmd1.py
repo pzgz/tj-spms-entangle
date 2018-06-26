@@ -6,6 +6,7 @@ import json
 
 import pymysql.cursors
 from hashlib import md5
+from datetime import date, datetime
 
 from ..core import config
 from .resource import get_mysql_connection, get_oracle_connection,  get_redis_connection
@@ -35,10 +36,10 @@ def duplicate(table_name):
 
     # logger.debug('Config -> {}'.format(table_config))
 
-    sql = 'SELECT {} FROM {} ORDER BY {}'.format(
+    sql = 'SELECT {} FROM {} WHERE {}'.format(
         ','.join(table_config.get('fields').keys()),
         table_name,
-        table_config.get('pk')
+        table_config.get('condition') if table_config.get('condition') else '1=1'
     )
 
     logger.info('Executing {}'.format(sql))
@@ -66,22 +67,27 @@ def duplicate(table_name):
             if count % 1000 == 0:
                 logger.debug('No.%d', count)
 
+            id = dict()
             new_row = dict()
             for _origin, _new in table_config.get('fields').items():
-                origin_value = row.get(_origin)   
+                origin_value = row.get(_origin)
+                if isinstance(origin_value, str):
+                    origin_value = origin_value.strip()
 
                 # 字段值映射判断                 
                 map_rule = rule_config.get(_origin) if rule_config else None
                 map_value = map_rule.get(origin_value) if map_rule else None
                 new_row[_new] = map_value if map_value else origin_value
 
-                if _origin == table_config.get('pk'):
-                    id = row.get(_origin)
+                if _origin in table_config.get('pk'):
+                    id[_new] = new_row[_new]
+                    # id = row.get(_origin)
 
             # 计算所有字段值组合的MD5值
             content = ','.join([x if isinstance(x, str) else str(x) for x in new_row.values()])
             new_md5 = md5(content.encode('utf-8')).hexdigest()
-            key = '{}:{}'.format(target_table, id)
+            key = '{}:{}'.format(target_table, ':'.join(
+                [x if isinstance(x, str) else str(x) for x in id.values()]))
             new_set.add(key)
 
             # 和旧记录的MD5值比较
@@ -94,17 +100,23 @@ def duplicate(table_name):
                 op = 2  # 记录发生了变化
 
             if op:
-                v = json.dumps({'id': id, 'op': op,'data': new_row}, ensure_ascii=False)
+                v = json.dumps({'pk': id, 'op': op, 'data': new_row}, ensure_ascii=False, cls=ComplexEncoder)
                 logger.info('Hit > %s', v)
                 # 将变化数据加入redis队列
                 redis_conn.lpush(target_table, v)
 
 
         # 判定是否有记录被删除
+        pk_cols = list()
+        for _origin, _new in table_config.get('fields').items():
+            if _origin in table_config.get('pk'):
+                pk_cols.append(_new)
+
         old_set = set(redis_conn.keys('{}:*'.format(target_table)))
         del_set = old_set ^ new_set
         for k in del_set:
-            v = json.dumps({'id': k.split(':')[1], 'op': 3}, ensure_ascii=False)
+            v = json.dumps(
+                {'pk': dict(zip(pk_cols, k.split(':')[1:])), 'op': 3}, ensure_ascii = False, cls = ComplexEncoder)
             logger.info('Hit > %s', v)
             redis_conn.delete(k)
             redis_conn.lpush(target_table, v)
@@ -116,3 +128,13 @@ def duplicate(table_name):
         connection.close()
 
     # logger.debug(redis_conn.rpop(target_table))
+
+
+class ComplexEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(obj, date):
+            return obj.strftime('%Y-%m-%d')
+        else:
+            return json.JSONEncoder.default(self, obj)
