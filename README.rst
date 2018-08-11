@@ -51,3 +51,14 @@ Build documentation:
 .. code-block:: console
 
     $ sphinx-build -b html doc doc/_build/html
+
+
+package:
+python -m zipapp src -o entangle.pyz
+
+run:
+python -m entangle.pyz cmd2
+
+python -m entangle -c ../etc/config.yml cmd2
+python -m entangle -c ../etc/config.yml -s cmd2
+python -m entangle -c ../etc/config.yml cmd3 -n PS_ETC_CW_BUDSTR

@@ -12,8 +12,7 @@ from argparse import ArgumentParser
 from inspect import getfullargspec
 
 from . import __version__
-from .api import cmd1
-from .api import cmd2
+from .api import cmd1, cmd2, cmd3
 from .core import config
 from .core import logger, setupLogging
 
@@ -70,11 +69,15 @@ def _args(argv=None):
             help="print version and exit")
     parser.add_argument("-w", "--warn", default="DEBUG",
             help="logger warning level [WARN]")
+    parser.add_argument("-s", "--history", action="store_true",
+                        help="duplicate history data")
     common = ArgumentParser(add_help=False)  # common subcommand arguments
     common.add_argument("--name", "-n", default="World", help="greeting name")
     subparsers = parser.add_subparsers(title="subcommands")
     _cmd1(subparsers, common)
     _cmd2(subparsers, common)
+    common.add_argument("--year", "-d", default="None", help="Year of data")
+    _cmd3(subparsers, common)
     args = parser.parse_args(argv)
     if not args.config:
         # Don't specify this as an argument default or else it will always be
@@ -100,6 +103,14 @@ def _cmd2(subparsers, common):
     parser.set_defaults(command=cmd2)
     return
 
+
+def _cmd3(subparsers, common):
+    """ CLI adaptor for the api.cmd3 command.
+
+    """
+    parser = subparsers.add_parser("cmd3", parents=[common])
+    parser.set_defaults(command=cmd3)
+    return
 
 terminate = False
 

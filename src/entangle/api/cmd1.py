@@ -13,12 +13,11 @@ from .resource import get_mysql_connection, get_oracle_connection,  get_redis_co
 
 logger = logging.getLogger(__name__)
 
-
 def main(name="World"):
     """ Execute the command.
     
     """
-    logger.info("executing {}".format(name))
+    logger.info("executing %s", name)
     duplicate(name)
 
 
@@ -29,7 +28,7 @@ def duplicate(table_name):
     rule_config = table_config.get('rules')
 
     if not table_config:
-        logger.error('{} is not exist.'.format(table_name))
+        logger.error('%s is not exist.', table_name)
         return
     else:
         logger.debug(table_config)
@@ -42,7 +41,7 @@ def duplicate(table_name):
         table_config.get('condition') if table_config.get('condition') else '1=1'
     )
 
-    logger.info('Executing {}'.format(sql))
+    logger.info('Executing %s', sql)
 
     try:
         if table_config.get('source') == 'mysql':
@@ -55,56 +54,55 @@ def duplicate(table_name):
         cursor = connection.cursor()
         cursor.execute(sql)
 
-        # _columns = [(metadata[0], metadata[1]) for metadata in cursor.description]
-        # logger.debug(_columns)
-
+        # rows = cursor.fetchall()
         new_set = set()
-        results = cursor.fetchall()
         count = 0
-        for row in results:
-            # logger.debug(row)
-            count += 1
-            if count % 1000 == 0:
+        while True:
+            rows = cursor.fetchmany(config.core.get('batch'))
+            if rows:
+                count += len(rows)
                 logger.debug('No.%d', count)
+            else:
+                break
 
-            id = dict()
-            new_row = dict()
-            for _origin, _new in table_config.get('fields').items():
-                origin_value = row.get(_origin)
-                if isinstance(origin_value, str):
-                    origin_value = origin_value.strip()
+            for row in rows:
+                id = dict()
+                new_row = dict()
+                for _origin, _new in table_config.get('fields').items():
+                    origin_value = row.get(_origin)
+                    if isinstance(origin_value, str):
+                        origin_value = origin_value.strip()
 
-                # 字段值映射判断                 
-                map_rule = rule_config.get(_origin) if rule_config else None
-                map_value = map_rule.get(origin_value) if map_rule else None
-                new_row[_new] = map_value if map_value else origin_value
+                    # 字段值映射判断                 
+                    map_rule = rule_config.get(_origin) if rule_config else None
+                    map_value = map_rule.get(origin_value) if map_rule else None
+                    new_row[_new] = map_value if map_value else origin_value
 
-                if _origin in table_config.get('pk'):
-                    id[_new] = new_row[_new]
-                    # id = row.get(_origin)
+                    if _origin in table_config.get('pk'):
+                        id[_new] = new_row[_new]
+                        # id = row.get(_origin)
 
-            # 计算所有字段值组合的MD5值
-            content = ','.join([x if isinstance(x, str) else str(x) for x in new_row.values()])
-            new_md5 = md5(content.encode('utf-8')).hexdigest()
-            key = '{}:{}'.format(target_table, ':'.join(
-                [x if isinstance(x, str) else str(x) for x in id.values()]))
-            new_set.add(key)
+                # 计算所有字段值组合的MD5值
+                content = ','.join([x if isinstance(x, str) else str(x) for x in new_row.values()])
+                new_md5 = md5(content.encode('utf-8')).hexdigest()
+                key = '{}:{}'.format(target_table, ':'.join(
+                    [x if isinstance(x, str) else str(x) for x in id.values()]))
+                new_set.add(key)
 
-            # 和旧记录的MD5值比较
-            old_md5 = redis_conn.getset(key, new_md5)
+                # 和旧记录的MD5值比较
+                old_md5 = redis_conn.getset(key, new_md5)
 
-            op = 0
-            if not old_md5:
-                op = 1  # 新增记录
-            elif old_md5 != new_md5:
-                op = 2  # 记录发生了变化
+                op = 0
+                if not old_md5:
+                    op = 1  # 新增记录
+                elif old_md5 != new_md5:
+                    op = 2  # 记录发生了变化
 
-            if op:
-                v = json.dumps({'pk': id, 'op': op, 'data': new_row}, ensure_ascii=False, cls=ComplexEncoder)
-                logger.info('Hit > %s', v)
-                # 将变化数据加入redis队列
-                redis_conn.lpush(target_table, v)
-
+                if op:
+                    v = json.dumps({'pk': id, 'op': op, 'data': new_row}, ensure_ascii=False, cls=ComplexEncoder)
+                    logger.info('Hit > %s', v)
+                    # 将变化数据加入redis队列
+                    redis_conn.lpush(target_table, v)
 
         # 判定是否有记录被删除
         pk_cols = list()
@@ -128,7 +126,6 @@ def duplicate(table_name):
         connection.close()
 
     # logger.debug(redis_conn.rpop(target_table))
-
 
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
