@@ -53,12 +53,21 @@ Build documentation:
     $ sphinx-build -b html doc doc/_build/html
 
 
-package:
+打包:
 python -m zipapp src -o entangle.pyz
 
 run:
 python -m entangle.pyz cmd2
 
-python -m entangle -c ../etc/config.yml cmd2
+
+实时调度：全量和增量同步
+python -m entangle -c ../etc/config.yml cmd0
+
+处理历史表
 python -m entangle -c ../etc/config.yml -s cmd2
-python -m entangle -c ../etc/config.yml cmd3 -n PS_ETC_CW_BUDSTR
+
+增量同步单张表PS_ETC_CW_BUDSTR
+python -m entangle -c ../etc/config.yml cmd1 -n PS_ETC_CW_BUDSTR
+
+同步数据到外部系统
+python -m entangle -c ../etc/config.yml cmd3

@@ -1,180 +1,120 @@
+
 # -*- coding: utf-8 -*-
 
-""" Implement the cmd3 command.
+""" Implement the cmd2 command.
 
 """
-
 import logging
-from datetime import date, datetime
+import time
 import threading
-from pprint import pprint
+import redis
 
-from flask import Flask, Response, request, jsonify
-from flask.views import  MethodView
+from pprint import pprint
 
 from ..core import config
 from .resource import get_redis_connection, get_mysql_connection, get_oracle_connection
+from .glovar import get_exit_flag
 
 logger = logging.getLogger(__name__)
 
-exit_flag = 0
+queue = "spms:out"
+backup_queue = '{}:backup'.format(queue)
+redis_conn = None
 
-
-class MyResponse(Response):
-    @classmethod
-    def force_type(cls, response, environ=None):
-        if isinstance(response, (list, dict)):
-            response = jsonify(response)
-        return super().force_type(response, environ)
-
-
-class FinanceAPI(MethodView):
-    def get(self):
-        option = request.args.get('option')
-        if option == 'list1':
-            return self.test_list()
-
-        msg = {
-            'info': '`option` is needed in url as a url parameter',
-            'avilable option values': 'list1, list2, test_dict1, test_dict2, test_dict2'
-        }
-        return msg
-
-    def post(self):
-        pass
-
-    def test_list(self):
-        data = [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}]
-        return data
-
-
-app = Flask(__name__)
-app.response_class = MyResponse
-app.add_url_rule('/codes/', view_func=FinanceAPI.as_view('codes'))
-
-def main(name="World", year=None, history=False):
-    """ Execute the command.    
+def main(name="World"):
+    """ Execute the command.
+    
     """
-    logger.debug("executing cmd3 command with %s", name)
-    table_config = config.entangle.get(name)
-    if not table_config:
-        logger.error('%s is not exist.', name)
-        return
-    else:
-        logger.debug(table_config)
+    global queue
+    global backup_queue
+    global redis_conn
 
-    current_year = datetime.now().year
-    if history:
-        start_year = table_config.get('history')
-        if start_year:
-            for year in range(start_year, current_year):
-                _duplicate(name+str(year), table_config, year)
-    else:
-        _duplicate(name, table_config)
-    # app.debug = True
-    # app.run(host='0.0.0.0', port=5000)
-
-
-def _duplicate(table_name, table_config, year=None):
-    if year:
-        target = table_config.get('target').format(year=year)
-    else:
-        target = table_config.get('target')
-
-    rule_config = table_config.get('rules')
-
-    sql = 'SELECT {} FROM {} WHERE {}'.format(
-        ','.join(table_config.get('fields').keys()),
-        table_name,
-        table_config.get('condition') if table_config.get('condition') else '1=1'
-    )
-    logger.info('Executing %s', sql)
+    if config.core.get('out_queue'):
+        queue = config.core.get('out_queue')
+        backup_queue = '{}:backup'.format(queue)
 
     redis_conn = get_redis_connection()
-    try:
-        if table_config.get('source') == 'mysql':
-            connection = get_mysql_connection()
+
+    logger.debug("executing cmd3 command with %s", name)
+    _handleBackupQueue()
+    _handleQueue()
+
+
+def _handleQueue():
+    logger.info('Starting listener %s...', queue)
+    while not get_exit_flag():
+        try:
+            message = redis_conn.brpoplpush(queue, backup_queue, 10)
+        except Exception as err:
+            logger.error(err)
+            time.sleep(5)
         else:
-            connection = get_oracle_connection()
+            _process_message(message)
+        finally:
+            pass
 
-        cursor = connection.cursor()
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        for row in rows:
-            new_row = dict()
+    logger.info('Exit listener %s.', queue)
 
-            for _origin, _new in table_config.get('fields').items():
-                origin_value = row.get(_origin)
-                if isinstance(origin_value, str):
-                    origin_value = origin_value.strip()
+count = 0
 
-                # 字段值映射判断
-                map_rule = rule_config.get(_origin) if rule_config else None
-                map_value = map_rule.get(origin_value) if map_rule else None
-                new_row[_new] = map_value if map_value else origin_value
-                
-            redis_conn.sadd(target, new_row)
-    except:
-        logger.exception('Error: unable to fetch data')
-    finally:
-        cursor.close()
-        connection.close()
-
-
-@app.route('/')
-def root():
-    t = {
-        'a': 1,
-        'b': 2,
-        'c': [3, 4, 5]
-    }
-    return jsonify(t)
-
-
-@app.route('/hello')
-def hello():
-    sql = "select BCODE,BNAME from PS_ETL_CW_BUDSTR where tcode='AA27' and SUBSTR(bcode,1,8)='AA270201' and LENGTH(trim(bcode))>8 order by bcode"
-
-    new_rows = list()
-
+def _process_message(message=None):
+    global count
     try:
-        connection = get_oracle_connection()
-        cursor = connection.cursor()
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        for row in rows:
-            new_row = dict()
-            for k, v in row.items():
-                new_row[k] = v.strip() if isinstance(v, str) else v
-
-            new_rows.append(new_row)
-    except:
-        logger.exception('Error: unable to fetch data')
-    finally:
-        cursor.close()
-        connection.close()
-
-    return new_rows
+        count = count + 1
+        if message == 'error' and count % 3 == 0:
+            raise Exception('failure to write db.')
+        else:
+            logger.debug('No.%d = [%s]', count, message)
+    except Exception as err:
+        logger.error(err)
+        # 消息处理出错了，消息仍然留在backup队列中，backup队列监听器会将消息扔回queue中，重新处理
+        # redis_connection.lpush(self.name, message)
+    else:
+        # 消息处理成功，将其从backup queue中删除
+        redis_conn.lrem(backup_queue, 1, message)
+        # 但是，如果业务处理时间过长（超过timeout时间），可能导致这条消息在backup队列存在较长时间，
+        # backup队列监听器会将消息扔回queu中，但实际上消息已经被处理，结果是消息被重复处理
 
 
-def handleRedisQueue():
-    handler = FinanceHandler(1, 'spms:abc')
+def _handleBackupQueue():
+    handler = BackupQueueHandler(1, queue)
     handler.start()
-    handler.join()
+    # handler.join()
 
-class FinanceHandler(threading.Thread):
-    def __init__(self, threadID, name):
+
+class BackupQueueHandler(threading.Thread):
+    def __init__(self, threadID, queue):
         threading.Thread.__init__(self)
         self.threadID = threadID
-        self.name = name
+        self.queu = queue
+        self.backup_queue = '{}:backup'.format(queue)
 
     def run(self):
-        logger.info('Starting listener %s...', self.name)
+        logger.info('Starting listener %s...', self.backup_queue)
         conn = get_redis_connection()
-        while not exit_flag:
-            result = conn.brpop(self.name, 30)
-            pprint(result)
+        while not get_exit_flag():
+            try:
+                rows = conn.lrange(self.backup_queue, -1, -1)
+                message = rows[0] if rows else None
+                if message:
+                    # 先判定backup队列中这条最老的message是否超时,
+                    # 超时表示在正常处理中遇到问题，将其扔回queue中重新处理
+                    logger.warn('retry %s...', message)
+                    pipe = conn.pipeline(transaction=True)
+                    pipe.watch(queue, backup_queue)
+                    pipe.multi()
+                    pipe.lrem(backup_queue, 1, message)
+                    pipe.lpush(queue, message)
+                    pipe.execute()
+                else:
+                    logger.debug('empty.')
+            except redis.exceptions.WatchError as ex:
+                logger.error(ex)
+                pipe.unwatch()
+            except redis.exceptions.RedisError as err:
+                logger.error(err)
+                pipe.unwatch()
+            finally:
+                time.sleep(5)           
 
-        logger.info('Exit listener %s.', self.name)
-
-
+        logger.info('Exit listener %s.', self.backup_queue)

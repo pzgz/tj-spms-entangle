@@ -1,5 +1,7 @@
-""" Implement the cmd1 command.
+# -*- coding: utf-8 -*-
 
+""" Implement the cmd1 command.
+    增量模式：将外部系统数据同步到科研系统
 """
 import logging
 import json

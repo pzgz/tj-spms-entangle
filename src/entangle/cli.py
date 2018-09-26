@@ -12,7 +12,8 @@ from argparse import ArgumentParser
 from inspect import getfullargspec
 
 from . import __version__
-from .api import cmd1, cmd2, cmd3
+from .api import cmd0, cmd1, cmd2, cmd3
+from .api import set_exit_flag
 from .core import config
 from .core import logger, setupLogging
 
@@ -74,10 +75,11 @@ def _args(argv=None):
     common = ArgumentParser(add_help=False)  # common subcommand arguments
     common.add_argument("--name", "-n", default="World", help="greeting name")
     subparsers = parser.add_subparsers(title="subcommands")
-    _cmd1(subparsers, common)
-    _cmd2(subparsers, common)
-    common.add_argument("--year", "-d", default="None", help="Year of data")
+    _cmd0(subparsers, common)
     _cmd3(subparsers, common)
+    _cmd1(subparsers, common)
+    common.add_argument("--year", "-d", default="None", help="Year of data")
+    _cmd2(subparsers, common)
     args = parser.parse_args(argv)
     if not args.config:
         # Don't specify this as an argument default or else it will always be
@@ -85,6 +87,15 @@ def _args(argv=None):
         args.config = "etc/config.yml"
     return args
  
+
+def _cmd0(subparsers, common):
+    """ CLI adaptor for the api.cmd0 command.
+
+    """
+    parser = subparsers.add_parser("cmd0", parents=[common])
+    parser.set_defaults(command=cmd0)
+    return
+
 
 def _cmd1(subparsers, common):
     """ CLI adaptor for the api.cmd1 command.
@@ -112,13 +123,11 @@ def _cmd3(subparsers, common):
     parser.set_defaults(command=cmd3)
     return
 
-terminate = False
 
 def signal_handling(signum, frame):
     logger.warn('You pressed Ctrl_c to stop me.')
-    global terminate
-    terminate = True
-    exit(2)
+    set_exit_flag(True)
+    
 
 # Make the module executable.
 

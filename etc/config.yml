@@ -5,6 +5,7 @@ core:
   logging: WARN
   batch: 1000
   period: 60
+  out_queue: spms:out
 
 
 logging:
@@ -58,6 +59,7 @@ entangle:
   PS_ETL_CW_BUDSTR:
     mode: copy
     target: exchange:finance:account
+    pk: ['BCODE']
     fields: {'BCODE':'code', 'BNAME':'name'}
     condition: tcode='AA27' and SUBSTR(bcode,1,8)='AA270201' and LENGTH(trim(bcode))>8 
   # PS_ETL_CW_BUDGET:
@@ -70,10 +72,10 @@ entangle:
   #   history: 1999
   #   target: exchange:finance:account:{year}
   #   fields: {'BCODE':'code', 'BNAME':'name'}
-  #   condition: tcode='AA27' and SUBSTR(bcode,1,8)='AA270201' and LENGTH(trim(bcode))>8 
+  #   condition: tcode='AA42' and SUBSTR(bcode,1,8)='AA420201' and LENGTH(trim(bcode))>8 
   PS_ETL_CW_PRJEXEC:
     source: oracle
     pk: ['CODE', 'BU_CODE']
     target: exchange:finance:prjexec
-    fields: {'CODE':'code', 'BU_CODE':'budget_code', 'BU_NAME':'name', 'CTL_MODE':'mode', 'PLAN_AMT_ALL':'plan_amount', 'EXEC_AMT_ALL':'exec_amount', 'FREEZE_AMT_ALL':'freeze_amount', 'MAX_USE_AMT_ALL':'balance', 'LASTUPD_DTTM':'modified_time'}
-    condition: SUBSTR(bu_code,1,4)='AA27'
+    fields: {'CODE':'code', 'BU_CODE':'budget_code', 'BU_NAME':'name', 'CTL_MODE':'mode', 'PLAN_AMT_ALL':'plan_amount', 'EXEC_AMT_ALL':'exec_amount', 'FREEZE_AMT_ALL':'freeze_amount', 'MAX_USE_AMT_ALL':'balance'}
+    condition: SUBSTR(bu_code,1,4)='AA42'
