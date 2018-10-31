@@ -27,6 +27,7 @@ def main(argv=None):
 
     """
     signal.signal(signal.SIGINT, signal_handling)
+    signal.signal(signal.SIGTERM, signal_handling)
 
     args = _args(argv)
     logger.start(args.warn)

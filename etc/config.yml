@@ -5,14 +5,13 @@ core:
   logging: WARN
   batch: 1000
   period: 60
-  out_queue: spms:out
 
 
 logging:
-  config: ../etc/logging.yml
+  config: etc/logging.yml
 
 redis:
-  host: localhost
+  host: host.docker.internal
   port: 6379
   decode_responses: true
 
@@ -36,43 +35,70 @@ oracle:
   database: ORCL
   user: ETL_EXT_KYC
   password: 9c16452a063353e1
-  nls_lang: AMERICAN_AMERICA.AL32UTF8
+  nls_lang: SIMPLIFIED CHINESE_CHINA.UTF8
+  #nls_lang: AMERICAN_AMERICA.AL32UTF8
 
+spms_to_finance:
+  fixed_time_queues:
+    - exchange:s2f:prj_category
+  real_time_queue: exchange:s2f:prj_funding
+  entities:
+    project:
+      target: V_KY_PROJ
+      pk: [wid]
+      fields: {'wid':'project_no','ky_prj_code':'project_no','ky_prj_name':'name','cw_prj_code':'card_no','cw_prj_name':'name','ky_ord':'sub_category_code','ky_type':'sub_category_name','sno':'user_id','sname':'user_name','start_year':'_start_year','end_year':'_end_year','create_date':'start_date','finish_date':'end_date','check_date':'setup_date','dno':'org_code','depart':'org_name','plan_amt':'setup_amount'}
+    budgets:
+      target: V_KY_PROJ_BUDGET
+      pk: [wid, bu_code]
+      fields: {'wid':'project_no','ky_prj_code':'project_no','cw_prj_code':'card_no','bu_code':'code','bu_name':'name','plan_amt':'amount'}
+    fund_items:
+      target: V_KY_ARRI
+      pk: [arri_no, ord]
+      fields: {'arri_no':'arri_no','ord':'ord','opt':'opt','ky_prj_code':'project_no','cw_prj_code':'card_no','arri_amt':'amount','arri_enddate':'card_close_at'}
+    category:
+      mode: copy
+      target: V_KY_TYPE
+      pk: [f_code, code]
+      fields: {'f_code':'parent_code','code':'code','name':'name','class_id':'project_type'}
+    depart:
+      mode: copy
+      target: V_KY_DEPART
+      pk: [code]
+      fields: {'code':'code','name':'name'}
+
+    
 entangle:
-  # T_JZG_JBXX:
-  #   source: mysql
-  #   pk: ['ZGH']
-  #   target: users
-  #   fields: {'ZGH':'work_id', 'XM':'name', 'DZXX':'email', 'XBM':'sex', 'SSEJDWM':'org_1', 'SSDWM':'org_2', 'PRZYJSZWJBM':'position_level', 'XWM':'degree_code'}
-  #   rules:
-  #     PRZYJSZWJBM: {'正高级':'050', '副高级':'040', '中级':'030', '初级':'020', '员级':'010'}
+  T_JZG_JBXX:
+    source: mysql
+    pk: ['ZGH']
+    target: exchange:ic:users
+    fields: {'ZGH':'work_id', 'XM':'name', 'DZXX':'email', 'XBM':'sex', 'SSEJDWM':'org_1', 'SSDWM':'org_2', 'PRZYJSZWJBM':'position_level', 'XWM':'degree_code'}
+    rules:
+      PRZYJSZWJBM: {'正高级':'050', '副高级':'040', '中级':'030', '初级':'020', '员级':'010'}
   T_ZZGL_XZJG:
     source: mysql
     pk: ['DWDM']
     target: exchange:ic:organizations
     fields: {'DWDM':'code', 'DWBZMC':'name', 'DWCC':'level', 'SSDWBM':'parent_code', 'DWLBM':'org_type', 'SFSY':'enabled'}
-  # T_ZXBZ_XW:
-  #   source: mysql
-  #   pk: ['XWDM']
-  #   target: degrees
-  #   fields: {'XWDM':'code', 'XWMC':'name', 'CC':'level', 'LS':'parent_code', 'SFSY':'enabled'}
+  T_ZXBZ_XW:
+    source: mysql
+    pk: ['XWDM']
+    target: exchange:ic:degrees
+    fields: {'XWDM':'code', 'XWMC':'name', 'CC':'level', 'LS':'parent_code', 'SFSY':'enabled'}
   PS_ETL_CW_BUDSTR:
+    source: oracle
     mode: copy
     target: exchange:finance:account
     pk: ['BCODE']
     fields: {'BCODE':'code', 'BNAME':'name'}
-    condition: tcode='AA27' and SUBSTR(bcode,1,8)='AA270201' and LENGTH(trim(bcode))>8 
-  # PS_ETL_CW_BUDGET:
-  #   source: oracle
-  #   pk: ['TCODE']
-  #   target: budget
-  #   fields: {'TCODE':'code', 'TNAME':'name', 'SDATE':'start_date', 'VALID':'valid'}
-  # PS_ETL_CW_BUDSTR:
-  #   mode: copy
-  #   history: 1999
-  #   target: exchange:finance:account:{year}
-  #   fields: {'BCODE':'code', 'BNAME':'name'}
-  #   condition: tcode='AA42' and SUBSTR(bcode,1,8)='AA420201' and LENGTH(trim(bcode))>8 
+    condition: tcode='AA42' and SUBSTR(bcode,1,8)='AA420201' and LENGTH(trim(bcode))>8
+  PS_ETL_CW_XCODEMAP_DEPART:
+    source: oracle
+    mode: copy
+    target: exchange:finance:depart
+    pk: ['SA_CODE']
+    fields: {'SA_CODE':'code', 'SA_NAME':'name'}
+    condition: LENGTH(trim(sa_code))=4
   PS_ETL_CW_PRJEXEC:
     source: oracle
     pk: ['CODE', 'BU_CODE']

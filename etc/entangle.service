@@ -1,0 +1,21 @@
+# This is a systemd service file, should be placed or symbolic link into /etc/systemd/system/
+# entangle service
+# author "Deng LiangYu <liangyu.deng@gmail.com>"
+
+[Unit]
+Description=entangle
+After=network.target
+
+[Service]
+User=evcard
+Group=evcard
+Restart=on-failure
+RestartSec=2s
+
+WorkingDirectory=/opt/porter
+# Environment="FOO=bar"
+ExecStart=/bin/bash -c 'cd /opt/porter && source /home/evcard/miniconda3/bin/activate porter && python porter.pyz /opt/porter >> /opt/porter/logs/service.log 2>&1'
+
+
+[Install]
+WantedBy=multi-user.target

@@ -15,6 +15,8 @@ from .resource import get_mysql_connection, get_oracle_connection,  get_redis_co
 
 logger = logging.getLogger(__name__)
 
+table_key_set = dict()
+
 def main(name="World"):
     """ Execute the command.
     
@@ -52,6 +54,14 @@ def duplicate(table_name):
             connection = get_oracle_connection()
 
         redis_conn = get_redis_connection()
+
+        old_set = table_key_set.get(table_name)
+        if old_set:
+            logger.debug('Table <%s> has %d records.', table_name, len(old_set))
+        else:
+            logger.info('Initializing key set...')
+            old_set = set(redis_conn.keys('{}:*'.format(target_table)))
+            table_key_set[table_name] = old_set
 
         cursor = connection.cursor()
         cursor.execute(sql)
@@ -97,12 +107,13 @@ def duplicate(table_name):
                 op = 0
                 if not old_md5:
                     op = 1  # 新增记录
+                    old_set.add(key)
                 elif old_md5 != new_md5:
                     op = 2  # 记录发生了变化
 
                 if op:
                     v = json.dumps({'pk': id, 'op': op, 'data': new_row}, ensure_ascii=False, cls=ComplexEncoder)
-                    logger.info('Hit > %s', v)
+                    logger.info('Hit %s > %s', target_table, v)
                     # 将变化数据加入redis队列
                     redis_conn.lpush(target_table, v)
 
@@ -112,12 +123,12 @@ def duplicate(table_name):
             if _origin in table_config.get('pk'):
                 pk_cols.append(_new)
 
-        old_set = set(redis_conn.keys('{}:*'.format(target_table)))
+        # old_set = set(redis_conn.keys('{}:*'.format(target_table)))
         del_set = old_set ^ new_set
         for k in del_set:
             v = json.dumps(
-                {'pk': dict(zip(pk_cols, k.split(':')[1:])), 'op': 3}, ensure_ascii = False, cls = ComplexEncoder)
-            logger.info('Hit > %s', v)
+                {'pk': dict(zip(pk_cols, k.split(':')[-len(pk_cols):])), 'op': 3}, ensure_ascii = False, cls = ComplexEncoder)
+            logger.info('Hit %s > %s', target_table, v)
             redis_conn.delete(k)
             redis_conn.lpush(target_table, v)
 

@@ -1,63 +1,23 @@
 
-========
-entangle
-========
 
-This is the entangle application.
+### 依赖关系
+`conda install pipreqs`
+`pipreqs entangle # 生成entangle/requirements.txt`
 
+### Docker
 
-Minimum Requirements
-====================
+* create image: `docker build --force-rm -t spms/entangle .`
+* test container: `docker run --rm -v /opt/apps:/app spms/entangle`
+* create container: `docker run -d --name entangle-cmd3 -v /opt/apps:/app spms/entangle cmd3`
+* view log: `docker logs -f entangle-cmd3`
 
-- Python 3.4
+### 打包
+`python -m zipapp src -o entangle.pyz`
 
+### 运行
 
-Optional Requirements
-=====================
-
-.. _pytest: http://pytest.org
-.. _Sphinx: http://sphinx-doc.org
-
-- `pytest`_ (for running the test suite)
-- `Sphinx`_ (for generating documentation)
-
-
-Basic Setup
-===========
-
-Install for the current user:
-
-.. code-block:: console
-
-    $ python setup.py install --user
-
-
-Run the application:
-
-.. code-block:: console
-
-    $ python -m entangle --help
-
-
-Run the test suite:
-
-.. code-block:: console
-   
-    $ pytest test/
-
-
-Build documentation:
-
-.. code-block:: console
-
-    $ sphinx-build -b html doc doc/_build/html
-
-
-打包:
-python -m zipapp src -o entangle.pyz
-
-run:
-python -m entangle.pyz cmd2
+* 同步到spms：`python entangle.pyz cmd0`
+* 同步到财务： `python entangle.pyz cmd3`
 
 
 实时调度：全量和增量同步

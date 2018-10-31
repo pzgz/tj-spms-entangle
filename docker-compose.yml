@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+services:
+  spmsin:
+    build: .
+    image: spms/entangle
+    container_name: entangle-cmd0
+    network_mode: bridge
+    external_links:
+      - tjspms-mysql:mydb
+    volumes:
+      - /home/laic/app/entangle/in:/app/entangle
+    command: ["cmd0"]
+
+  spmsout:
+    build: .
+    image: spms/entangle
+    container_name: entangle-cmd3
+    network_mode: bridge
+    volumes:
+      - /Users/duduba/Documents/vsc:/app
+    depends_on:
+      - "redis"
+    command: ["cmd3"]
+
+  redis:
+    image: redis:latest
+    container_name: entangle-redis
+    network_mode: bridge
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis-data:

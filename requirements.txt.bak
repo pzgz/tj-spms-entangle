@@ -1,0 +1,15 @@
+## Python requirements for using the entangle application.
+##
+##    pip install --requirement=requirements.txt
+##
+PyYAML>=3.11
+coloredlogs
+pymysql
+cx_oracle
+redis
+redis-py
+arrow
+dateutil
+
+
+
