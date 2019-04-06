@@ -41,26 +41,27 @@ oracle:
 spms_to_finance:
   fixed_time_queues:
     - exchange:s2f:prj_category
+    - exchange:s2f:depart
   real_time_queue: exchange:s2f:prj_funding
   entities:
     project:
       target: V_KY_PROJ
       pk: [wid]
-      fields: {'wid':'project_no','ky_prj_code':'project_no','ky_prj_name':'name','cw_prj_code':'card_no','cw_prj_name':'name','ky_ord':'sub_category_code','ky_type':'sub_category_name','sno':'user_id','sname':'user_name','start_year':'_start_year','end_year':'_end_year','create_date':'start_date','finish_date':'end_date','check_date':'setup_date','dno':'org_code','depart':'org_name','plan_amt':'setup_amount'}
+      fields: {'wid':'project_no','ky_prj_code':'project_no','ky_prj_name':'name','cw_prj_code':'card_no','cw_prj_name':'name','ky_ord':'sub_category_code','ky_type':'sub_category_name','sno':'user_id','sname':'user_name','start_year':'_start_year','end_year':'_end_year','create_date':'start_date','finish_date':'end_date','check_date':'setup_date','dno':'org_code','depart':'org_name','fno':'finance_org_code','plan_amt':'setup_amount','tel':'tel'}
     budgets:
       target: V_KY_PROJ_BUDGET
       pk: [wid, bu_code]
       fields: {'wid':'project_no','ky_prj_code':'project_no','cw_prj_code':'card_no','bu_code':'code','bu_name':'name','plan_amt':'amount'}
-    fund_items:
+    fund_item:
       target: V_KY_ARRI
       pk: [arri_no, ord]
-      fields: {'arri_no':'arri_no','ord':'ord','opt':'opt','ky_prj_code':'project_no','cw_prj_code':'card_no','arri_amt':'amount','arri_enddate':'card_close_at'}
+      fields: {'arri_no':'fund_no','ord':'id','opt':'user_name','ky_prj_code':'project_no','cw_prj_code':'card_no','arri_amt':'amount','arri_enddate':'card_close_at'}
     category:
       mode: copy
       target: V_KY_TYPE
       pk: [f_code, code]
       fields: {'f_code':'parent_code','code':'code','name':'name','class_id':'project_type'}
-    depart:
+    t_zzgl_xzjg:
       mode: copy
       target: V_KY_DEPART
       pk: [code]
@@ -80,6 +81,12 @@ entangle:
     pk: ['DWDM']
     target: exchange:ic:organizations
     fields: {'DWDM':'code', 'DWBZMC':'name', 'DWCC':'level', 'SSDWBM':'parent_code', 'DWLBM':'org_type', 'SFSY':'enabled'}
+  T_ZZGL_XZJG.forward:
+    source: mysql
+    mode: copy
+    target: exchange:s2f:depart
+    fields: {'DWDM':'code', 'DWBZMC':'name'}
+    order_by: DWDM
   T_ZXBZ_XW:
     source: mysql
     pk: ['XWDM']
@@ -104,4 +111,10 @@ entangle:
     pk: ['CODE', 'BU_CODE']
     target: exchange:finance:prjexec
     fields: {'CODE':'code', 'BU_CODE':'budget_code', 'BU_NAME':'name', 'CTL_MODE':'mode', 'PLAN_AMT_ALL':'plan_amount', 'EXEC_AMT_ALL':'exec_amount', 'FREEZE_AMT_ALL':'freeze_amount', 'MAX_USE_AMT_ALL':'balance'}
+    condition: SUBSTR(bu_code,1,4)='AA42'
+  PS_ETL_CW_PZD1:
+    source: oracle
+    pk: ['PZH', 'ORD']
+    target: exchange:finance:pzd1
+    fields: {'PZH':'pzh', 'ORD':'ord', 'SYEAR':'year', 'SMONTH':'month', 'SDAY':'day', 'J_AMOUNT':'debit_amount', 'PRJ_ORDER':'code', 'BU_CODE':'budget_code'}
     condition: SUBSTR(bu_code,1,4)='AA42'

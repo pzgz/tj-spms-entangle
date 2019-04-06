@@ -55,6 +55,10 @@ def duplicate(table_name):
 
         redis_conn = get_redis_connection()
 
+        # redis：某个表的每条记录的md5记录在redisk的key(${exchange:*:target}:*)中
+        # 将表的所有记录的key初始化存入old_set中，如果后续有新纪录产生，添加到old_set中
+        # 表中实际有的记录的key存入new_set中
+        # 判断是否有数据删除时，计算old_set和new_set的差
         old_set = table_key_set.get(table_name)
         if old_set:
             logger.debug('Table <%s> has %d records.', table_name, len(old_set))
@@ -131,6 +135,7 @@ def duplicate(table_name):
             logger.info('Hit %s > %s', target_table, v)
             redis_conn.delete(k)
             redis_conn.lpush(target_table, v)
+            old_set.remove(k)
 
     except:
         logger.exception('Error: unable to fetch data')

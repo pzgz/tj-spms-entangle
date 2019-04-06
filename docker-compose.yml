@@ -1,7 +1,6 @@
 version: "3"
 
 services:
-services:
   spmsin:
     build: .
     image: spms/entangle
@@ -23,9 +22,10 @@ services:
     depends_on:
       - "redis"
     command: ["cmd3"]
+    restart: on-failure
 
   redis:
-    image: redis:latest
+    image: redis:5-alpine
     container_name: entangle-redis
     network_mode: bridge
     ports:

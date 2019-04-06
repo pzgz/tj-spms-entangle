@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+import decimal
 import redis
 import pymysql
+import cx_Oracle
 # import cx_Oracle
 
 from ..core import config
@@ -36,8 +38,13 @@ def get_mysql_connection():
     return connection
 
 
+def outputTypeHandler(cursor, name, defaultType, size, precision, scale):
+    if defaultType == cx_Oracle.NUMBER:
+        return cursor.var(decimal.Decimal, arraysize = cursor.arraysize)
+
 def get_oracle_connection():
     connection = Connection(user=config.oracle.user, 
                             password=config.oracle.password, 
                             dsn='{}:{}/{}'.format(config.oracle.host, config.oracle.port, config.oracle.database))
+    # connection.outputtypehandler = outputTypeHandler                            
     return connection

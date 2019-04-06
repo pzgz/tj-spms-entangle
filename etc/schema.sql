@@ -53,6 +53,7 @@ CREATE TABLE "ETL_EXT_KYC"."V_KY_PROJ" (
 	DEPART VARCHAR2(200),
 	MDO VARCHAR2(50) DEFAULT '000593',
 	MDEPART VARCHAR2(200) DEFAULT '科研管理部',
+    FNO VARCHAR2(50),
 	SA_SRC CHAR(100),
 	PLAN_AMT NUMBER(14,2) DEFAULT 0,
 	ATTACH NUMBER(14,2) DEFAULT 0,
@@ -86,6 +87,7 @@ comment on column V_KY_PROJ.DNO is '所属部门代码';
 comment on column V_KY_PROJ.DEPART is '所属部门名称';
 comment on column V_KY_PROJ.MDO is '主管部门代码';
 comment on column V_KY_PROJ.MDEPART is '主管部门名称';
+comment on column V_KY_PROJ.FNO is '财务机构组织代码';
 comment on column V_KY_PROJ.SA_SRC is '项目来源';
 comment on column V_KY_PROJ.PLAN_AMT is '立项经费';
 comment on column V_KY_PROJ.ATTACH is '配套经费';

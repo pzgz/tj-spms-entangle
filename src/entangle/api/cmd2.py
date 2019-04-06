@@ -6,6 +6,8 @@
 
 import logging
 import json
+
+from hashlib import md5
 from datetime import date, datetime
 
 from ..core import config
@@ -32,7 +34,11 @@ def main(name="World", year=None, history=False):
             for year in range(start_year, current_year):
                 _duplicate(name+str(year), table_config, year)
     else:
-        _duplicate(name, table_config)
+        _name = name.split('.')
+        if _name[-1] == 'forward':
+            _forward(_name[0], table_config)
+        else:
+            _duplicate(_name[0], table_config)
     # app.debug = True
     # app.run(host='0.0.0.0', port=5000)
 
@@ -48,8 +54,7 @@ def _duplicate(table_name, table_config, year=None):
     sql = 'SELECT {} FROM {} WHERE {}'.format(
         ','.join(table_config.get('fields').keys()),
         table_name,
-        table_config.get('condition') if table_config.get(
-            'condition') else '1=1'
+        table_config.get('condition') if table_config.get('condition') else '1=1'
     )
     logger.info('Executing %s', sql)
 
@@ -88,6 +93,66 @@ def _duplicate(table_name, table_config, year=None):
             redis_conn.sadd(temp_target, v)
 
         redis_conn.rename(temp_target, target)
+    except:
+        logger.exception('Error: unable to fetch data')
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def _forward(table_name, table_config):
+    target = table_config.get('target')
+    rule_config = table_config.get('rules')
+
+    sql = 'SELECT {} FROM {} WHERE {}'.format(
+        ','.join(table_config.get('fields').keys()),
+        table_name,
+        table_config.get('condition') if table_config.get('condition') else '1=1'
+    )
+    if table_config.get('order_by'):
+        sql = '{} ORDER BY {}'.format(
+            sql,
+            table_config.get('order_by')
+        )
+
+    logger.info('Executing %s', sql)
+
+    hash_target = '{}:md5'.format(target)
+    redis_conn = get_redis_connection()
+    try:
+        if table_config.get('source') == 'mysql':
+            connection = get_mysql_connection()
+        else:
+            connection = get_oracle_connection()
+
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+
+        new_rows = list()
+        for row in rows:
+            new_row = dict()
+            for _origin, _new in table_config.get('fields').items():
+                origin_value = row.get(_origin)
+                if isinstance(origin_value, str):
+                    origin_value = origin_value.strip()
+                # 字段值映射判断
+                map_rule = rule_config.get(_origin) if rule_config else None
+                map_value = map_rule.get(origin_value) if map_rule else None
+                new_row[_new] = map_value if map_value else origin_value
+
+            new_rows.append(new_row)
+
+        v = json.dumps(new_rows, ensure_ascii=False)
+        new_md5 = md5(v.encode('utf-8')).hexdigest()
+        old_md5 = redis_conn.getset(hash_target, new_md5)
+        if new_md5 != old_md5:
+            _content = {'updated_at':int(datetime.now().timestamp()),
+                'entity':table_name.lower(),
+                'data':new_rows}
+
+            redis_conn.set(target, json.dumps(_content, ensure_ascii=False))
+
     except:
         logger.exception('Error: unable to fetch data')
     finally:

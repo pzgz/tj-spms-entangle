@@ -11,6 +11,8 @@ import arrow
 import threading
 import redis
 
+import cx_Oracle
+
 from pprint import pprint
 from enum import Enum
 
@@ -88,8 +90,9 @@ def _process_message(message, mode=SYNCMODE.INCREMENT):
     switcher = {
         'project': _on_project,
         'budgets': _on_budgets,
-        'fund_items': _on_fund_items,
+        'fund_item': _on_fund_item,
         'category': _on_category,
+        't_zzgl_xzjg': _on_t_zzgl_xzjg,
     }
     try:        
         msg = json.loads(message)
@@ -150,8 +153,11 @@ def _on_project(message):
     _save_message(entity, rows)
 
 
-def _on_fund_items(message):
+def _on_fund_item(message):
     data = message.get('data')
+    data['fund_no'] = str(data.get('fund_no'))
+    data['card_close_at'] = _to_date(data.get('card_close_at'))
+
     data['m_id'] = message.get('id')
     data['last_ver'] = _to_date(message.get('created_at'))
 
@@ -198,9 +204,21 @@ def _on_category(message):
 
     _save_message(entity, rows)
 
+def _on_t_zzgl_xzjg(message):
+    entity = message.get('entity')    
+    m_id = message.get('updated_at')
+    m_created_at = _to_date(m_id)
+    rows = []
+    for row in message.get('data'):
+        row['m_id'] = m_id
+        row['last_ver'] = m_created_at
+        rows.append(_map_message(entity, row))
+
+    _save_message(entity, rows)
+
 
 def _on_miss(message):
-    pass
+    logger.warn('No implement for entity: %s.', message.get('entity'))
 
 
 def _save_message(entity, rows):
@@ -217,9 +235,9 @@ def _save_message(entity, rows):
                     cursor.executemany(sql[0], rows)
                 else:
                     cursor.execute(sql[0], rows[0])
-            except Exception as err:
-                logger.exception(err)
+            except cx_Oracle.DatabaseError as err:
                 db.rollback()
+                raise
             else:
                 db.commit()
             finally:
@@ -239,17 +257,6 @@ def _get_message_id(entity, data):
     cursor.close()
     conn.commit()
     return row.get('M_ID') if row else -1
-
-def _upsert_message(entity, data):
-    sql = _get_statement(entity)
-    _data = {k:v for k,v in data.items() if k in sql[1]}
-    _miss_data = {k:None for k in sql[1] if k not in _data}
-
-    conn = get_oracle_connection()
-    cursor = conn.cursor()
-    cursor.execute(sql[0], {**_data, **_miss_data})
-    cursor.close()
-    conn.commit()
 
 
 def _get_statement(entity, sql=SQL.UPSERT):
