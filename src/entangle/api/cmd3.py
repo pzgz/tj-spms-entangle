@@ -178,7 +178,10 @@ def _on_budgets(message):
         budget['last_ver'] = m_created_at
         budget['project_no'] = data.get('project_no')
         budget['card_no'] = data.get('card_no')
-        rows.append(_map_message(entity, budget))
+        _budget = _map_message(entity, budget)
+        amount = _budget.get('plan_amt')
+        _budget['plan_amt'] = amount if isinstance(amount, (int, float)) else float(amount)
+        rows.append(_budget)
 
     _save_message(entity, rows)
 
@@ -295,7 +298,7 @@ def _get_statement(entity, sql=SQL.UPSERT):
 def _to_date(src_date):
     if src_date:
         try:
-            target_date = arrow.get(src_date).replace(tzinfo='local').datetime
+            target_date = arrow.get(src_date).to('local').datetime
         except arrow.parser.ParserError:
             return None
         else:
