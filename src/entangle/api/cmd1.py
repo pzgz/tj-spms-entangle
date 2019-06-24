@@ -44,6 +44,11 @@ def duplicate(table_name):
         table_name,
         table_config.get('condition') if table_config.get('condition') else '1=1'
     )
+    if table_config.get('order_by'):
+        sql = '{} ORDER BY {}'.format(
+            sql,
+            table_config.get('order_by')
+        )
 
     logger.info('Executing %s', sql)
 

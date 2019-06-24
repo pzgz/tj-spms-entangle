@@ -179,8 +179,11 @@ def _on_budgets(message):
         budget['project_no'] = data.get('project_no')
         budget['card_no'] = data.get('card_no')
         _budget = _map_message(entity, budget)
+
+        # josn数据中，属性plan_amt偶尔会有string类型的值,例如“3.1”
         amount = _budget.get('plan_amt')
         _budget['plan_amt'] = amount if isinstance(amount, (int, float)) else float(amount)
+        
         rows.append(_budget)
 
     _save_message(entity, rows)
