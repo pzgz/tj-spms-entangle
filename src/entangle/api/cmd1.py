@@ -91,8 +91,7 @@ def duplicate(table_name):
                 new_row = dict()
                 for _origin, _new in table_config.get('fields').items():
                     origin_value = row.get(_origin)
-                    if isinstance(origin_value, str):
-                        origin_value = origin_value.strip()
+                    origin_value = origin_value.strip() if isinstance(origin_value, str) else origin_value
 
                     # 字段值映射判断                 
                     map_rule = rule_config.get(_origin) if rule_config else None
@@ -102,6 +101,9 @@ def duplicate(table_name):
                     if _origin in table_config.get('pk'):
                         id[_new] = new_row[_new]
                         # id = row.get(_origin)
+
+                if table_name == 'PS_ETL_CW_PZD1':
+                    do_ps_etl_cw_pzd1(new_row)
 
                 # 计算所有字段值组合的MD5值
                 content = ','.join([x if isinstance(x, str) else str(x) for x in new_row.values()])
@@ -149,6 +151,9 @@ def duplicate(table_name):
         connection.close()
 
     # logger.debug(redis_conn.rpop(target_table))
+
+def do_ps_etl_cw_pzd1(row):
+    row['debit_amount'] = row.get('debit_amount') - row.pop('credit_amount')
 
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):

@@ -6,7 +6,7 @@
 运行：`python entangle.pyz cmd0`
 
 1. 确定调度，每core.period执行一次
-2. 处理entangle下的每个表，根据entangle.*.mode决定执行增量（cmd1）还是全量（cmd2）
+2. 处理entangle下的每个表，根据entangle.*.mode决定执行增量（执行cmd1）还是全量（执行cmd2）
 3. 增量时，逐条计算每条记录的md5值，和旧值比较，判断数据是否发生变更，产生增、删、改的json记录，lpush到redis队列(entangle.*.target)
 4. 全量时，逐条处理每条记录，生成json，sadd到redis集合(entangle.*.target)；同时设置每条记录的redis hash(entangle.*.taget:*)
 5. forward模式时，全部记录生成一条json，根据md5值判断是否发生变化，设置到redis的string值中(entangle.*.target)

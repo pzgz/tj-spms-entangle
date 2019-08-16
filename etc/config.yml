@@ -116,7 +116,7 @@ entangle:
     source: oracle
     pk: ['PZH', 'ORD']
     target: exchange:finance:pzd1
-    fields: {'PZH':'pzh', 'ORD':'ord', 'SYEAR':'year', 'SMONTH':'month', 'SDAY':'day', 'J_AMOUNT':'debit_amount', 'PRJ_ORDER':'code', 'BU_CODE':'budget_code'}
+    fields: {'PZH':'pzh', 'ORD':'ord', 'SYEAR':'year', 'SMONTH':'month', 'SDAY':'day', 'J_AMOUNT':'debit_amount', 'D_AMOUNT':'credit_amount', 'PRJ_ORDER':'code', 'BU_CODE':'budget_code'}
     condition: SUBSTR(bu_code,1,4)='AA42'
   PS_ETL_KYCW_ARRI_CW:
     source: oracle
