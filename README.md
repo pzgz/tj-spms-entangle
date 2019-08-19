@@ -32,6 +32,7 @@
 
 ### 打包
 `python -m zipapp src -o entangle.pyz`
+`scp -P 8080 entangle.pyz laic@tjspms.laic-tech.com:`
 
 ### 运行
 

@@ -111,16 +111,17 @@ entangle:
     pk: ['CODE', 'BU_CODE']
     target: exchange:finance:prjexec
     fields: {'CODE':'code', 'BU_CODE':'budget_code', 'BU_NAME':'name', 'CTL_MODE':'mode', 'PLAN_AMT_ALL':'plan_amount', 'EXEC_AMT_ALL':'exec_amount', 'FREEZE_AMT_ALL':'freeze_amount', 'MAX_USE_AMT_ALL':'balance'}
-    condition: SUBSTR(bu_code,1,4)='AA42'
+    condition: SUBSTR(bu_code,1,4)='YS03'
   PS_ETL_CW_PZD1:
     source: oracle
     pk: ['PZH', 'ORD']
     target: exchange:finance:pzd1
     fields: {'PZH':'pzh', 'ORD':'ord', 'SYEAR':'year', 'SMONTH':'month', 'SDAY':'day', 'J_AMOUNT':'debit_amount', 'D_AMOUNT':'credit_amount', 'PRJ_ORDER':'code', 'BU_CODE':'budget_code'}
-    condition: SUBSTR(bu_code,1,4)='AA42'
+    condition: SUBSTR(bu_code,1,4)='YS03'
   PS_ETL_KYCW_ARRI_CW:
     source: oracle
     pk: ['ARRI_NO', 'ORD']
     target: exchange:finance:arri
-    fields: {'ARRI_NO':'arri_no', 'ORD':'ord', 'F_SMARK':'entry_voucher_code', 'F_DATE':'entry_date', 'LASTUPD_DTTM':'gmt_modified'}
+    fields: {'ARRI_NO':'arri_no', 'ORD':'ord', 'F_SMARK':'entry_voucher_code', 'F_DATE':'entry_date', 'IS_OLD':'old_account', 'LASTUPD_DTTM':'gmt_modified'}
     order_by: ARRI_NO,ORD
+    debug: true

@@ -26,7 +26,7 @@ def main(name="World"):
 
 
 def duplicate(table_name):
-    
+
     table_config = config.entangle.get(table_name)
     target_table = table_config.get('target')
     rule_config = table_config.get('rules')
@@ -93,7 +93,7 @@ def duplicate(table_name):
                     origin_value = row.get(_origin)
                     origin_value = origin_value.strip() if isinstance(origin_value, str) else origin_value
 
-                    # 字段值映射判断                 
+                    # 字段值映射判断
                     map_rule = rule_config.get(_origin) if rule_config else None
                     map_value = map_rule.get(origin_value) if map_rule else None
                     new_row[_new] = map_value if map_value else origin_value
@@ -104,6 +104,8 @@ def duplicate(table_name):
 
                 if table_name == 'PS_ETL_CW_PZD1':
                     do_ps_etl_cw_pzd1(new_row)
+                elif table_name == 'PS_ETL_KYCW_ARRI_CW':
+                    do_ps_etl_kycw_arri_cw(new_row)
 
                 # 计算所有字段值组合的MD5值
                 content = ','.join([x if isinstance(x, str) else str(x) for x in new_row.values()])
@@ -126,7 +128,8 @@ def duplicate(table_name):
                     v = json.dumps({'pk': id, 'op': op, 'data': new_row}, ensure_ascii=False, cls=ComplexEncoder)
                     logger.info('Hit %s > %s', target_table, v)
                     # 将变化数据加入redis队列
-                    redis_conn.lpush(target_table, v)
+                    if not table_config.get('debug'):
+                        redis_conn.lpush(target_table, v)
 
         # 判定是否有记录被删除
         pk_cols = list()
@@ -140,9 +143,10 @@ def duplicate(table_name):
             v = json.dumps(
                 {'pk': dict(zip(pk_cols, k.split(':')[-len(pk_cols):])), 'op': 3}, ensure_ascii = False, cls = ComplexEncoder)
             logger.info('Hit %s > %s', target_table, v)
-            redis_conn.delete(k)
-            redis_conn.lpush(target_table, v)
-            old_set.remove(k)
+            if not table_config.get('debug'):
+                redis_conn.delete(k)
+                redis_conn.lpush(target_table, v)
+                old_set.remove(k)
 
     except:
         logger.exception('Error: unable to fetch data')
@@ -154,6 +158,13 @@ def duplicate(table_name):
 
 def do_ps_etl_cw_pzd1(row):
     row['debit_amount'] = row.get('debit_amount') - row.pop('credit_amount')
+
+def do_ps_etl_kycw_arri_cw(row):
+    entry_date = row.get('entry_date')
+    if entry_date:
+        row['entry_date'] = datetime.strptime(entry_date, '%d-%b-%y')
+    else:
+        row['entry_date'] = '2019-06-30 00:00:00'
 
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
