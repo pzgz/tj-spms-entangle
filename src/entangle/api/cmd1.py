@@ -148,12 +148,13 @@ def duplicate(table_name):
                 redis_conn.lpush(target_table, v)
                 old_set.remove(k)
 
-    except:
-        logger.exception('Error: unable to fetch data')
+    except Exception as e:
+        logger.exception(e)
     finally:
         cursor.close()
         connection.close()
 
+    logger.info('Over.')
     # logger.debug(redis_conn.rpop(target_table))
 
 def do_ps_etl_cw_pzd1(row):

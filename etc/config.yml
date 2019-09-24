@@ -125,3 +125,8 @@ entangle:
     fields: {'ARRI_NO':'arri_no', 'ORD':'ord', 'F_SMARK':'entry_voucher_code', 'F_DATE':'entry_date', 'IS_OLD':'old_account', 'LASTUPD_DTTM':'gmt_modified'}
     order_by: ARRI_NO,ORD
     debug: true
+  PS_ETL_KYCW_CLEARDTL:
+    source: oracle
+    pk: ['MAIN_KEY', 'SMARK']
+    target: exchange:finance:clear
+    fields: {'MAIN_KEY':'main_key', 'SMARK':'smark', 'CLR_DATE':'clear_date', 'SUBJ':'subject', 'UNIT_CODE':'unit_code', 'CLR_ORDER':'clear_order', 'UNI_NO':'uni_no', 'RECORD_NO':'record_no', 'SABSTRACT':'ABSTRACT', 'J_AMOUNT':'debit_amount', 'D_AMOUNT':'credit_amount', 'OPERATE':'operator', 'UNI_PRJ_ORDER':'code', 'CLRSNO':'borrower', 'JF_AMT':'jf_amount', 'DZ_AMT':'dz_amount'}

@@ -4,6 +4,7 @@ import os
 import decimal
 import redis
 import pymysql
+import logging
 import cx_Oracle
 # import cx_Oracle
 
@@ -17,6 +18,7 @@ redis_pool = None
 #                                   port=config.redis.port,
 #                                   decode_responses=config.redis.decode_responses)
 
+logger = logging.getLogger(__name__)
 
 def get_redis_connection(db=0):
     global redis_pool
@@ -43,8 +45,18 @@ def outputTypeHandler(cursor, name, defaultType, size, precision, scale):
         return cursor.var(decimal.Decimal, arraysize = cursor.arraysize)
 
 def get_oracle_connection():
-    connection = Connection(user=config.oracle.user, 
-                            password=config.oracle.password, 
-                            dsn='{}:{}/{}'.format(config.oracle.host, config.oracle.port, config.oracle.database))
-    # connection.outputtypehandler = outputTypeHandler                            
+    try:
+        connection = Connection(user=config.oracle.user,
+        password=config.oracle.password,
+        dsn='{}:{}/{}'.format(config.oracle.host, config.oracle.port, config.oracle.database))
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        if error.code == 1017:
+            logger.error('Please check your credentials.')
+        else:
+            logger.error('Database connection error: {}'.format(e))
+
+        raise    
+
+    # connection.outputtypehandler = outputTypeHandler
     return connection
