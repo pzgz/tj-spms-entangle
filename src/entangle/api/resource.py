@@ -5,8 +5,7 @@ import decimal
 import redis
 import pymysql
 import logging
-import cx_Oracle
-# import cx_Oracle
+import oracledb as cx_Oracle
 
 from ..core import config
 from .oracle import Connection

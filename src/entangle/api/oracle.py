@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import collections
-import cx_Oracle
+import oracledb as cx_Oracle
 
 __all__ = "Connection", "Cursor"
 

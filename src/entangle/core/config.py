@@ -7,7 +7,7 @@ this object to store application-wide configuration values.
 
 """
 from re import compile
-from yaml import load
+from yaml import load, SafeLoader
 
 from .logger import logger
 
@@ -95,7 +95,7 @@ class YamlConfig(_AttrDict):
                 # substitution as the file is parsed.
                 logger.info("reading config data from '{:s}'".format(path))
                 yaml = regex.sub(replace, stream.read())
-            data = load(yaml)
+            data = load(yaml, Loader=SafeLoader)
             try:
                 if root:
                     self.setdefault(root, {}).update(data)

@@ -11,7 +11,7 @@ import arrow
 import threading
 import redis
 
-import cx_Oracle
+import oracledb as cx_Oracle
 
 from pprint import pprint
 from enum import Enum
