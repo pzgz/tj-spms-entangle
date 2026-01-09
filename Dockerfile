@@ -32,7 +32,7 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
 
 COPY requirements.txt /tmp/
 
-RUN pip install --no-cache-dir -i https://mirror.sjtu.edu.cn/pypi/web/simple/ -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
 
