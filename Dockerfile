@@ -31,10 +31,10 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
     ln -s /usr/local/instantclient/libocci.so.* /usr/local/instantclient/libocci.so
 
 COPY requirements.txt /tmp/
+COPY wheels/ /tmp/wheels/
 
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip config set global.timeout 120 && \
-    pip install --no-cache-dir --retries 5 -r /tmp/requirements.txt
+RUN pip install --no-cache-dir --no-index --find-links=/tmp/wheels -r /tmp/requirements.txt && \
+    rm -rf /tmp/wheels
 
 WORKDIR /app/entangle/
 
