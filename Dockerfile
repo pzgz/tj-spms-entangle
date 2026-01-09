@@ -3,8 +3,8 @@ FROM python:3.9-slim-bullseye
 LABEL vendor="LAIC" \
     maintainer="ly.deng@gmail.com"
 
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
-    sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
+RUN sed -i 's|deb.debian.org|mirror.sjtu.edu.cn|g' /etc/apt/sources.list && \
+    sed -i 's|security.debian.org/debian-security|mirror.sjtu.edu.cn/debian-security|g' /etc/apt/sources.list && \
     apt-get update && apt-get -y install \
 #    net-tools \
 #    iputils-ping \
@@ -32,7 +32,7 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
 
 COPY requirements.txt /tmp/
 
-RUN pip install --no-cache-dir -i https://mirrors.tuna.tsinghua.edu.cn/pypi/simple/ -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -i https://mirror.sjtu.edu.cn/pypi/web/simple/ -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
 
