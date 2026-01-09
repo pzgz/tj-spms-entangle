@@ -32,8 +32,7 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
 
 COPY requirements.txt /tmp/
 
-RUN python -m pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple --upgrade pip && \
-    pip config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple && \
+RUN pip config set global.index-url https://pypi.doubanio.com/simple && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
