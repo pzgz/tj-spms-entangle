@@ -48,6 +48,8 @@ WORKDIR /app/entangle/
 
 COPY src/ /app/entangle/src/
 RUN python -m zipapp src -o entangle.pyz && rm -rf src/
-ENTRYPOINT ["python", "entangle.pyz"]
+# ENTRYPOINT ["python", "entangle.pyz"]
+# CMD ["--help"]
 
-CMD ["--help"]
+# Temporary entrypoint for debugging
+ENTRYPOINT ["tail", "-f", "/dev/null"]

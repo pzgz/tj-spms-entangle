@@ -51,3 +51,10 @@ python -m entangle -c ../etc/config.yml cmd1 -n PS_ETC_CW_BUDSTR
 
 同步数据到外部系统
 python -m entangle -c ../etc/config.yml cmd3
+
+
+## 最新部署和build方式
+
+* 在生产服务器上checkout代码
+* 进入代码目录，使用以下命令打包: `docker build -t spms/entangle .`
+* 在`docker-compose.yml`的目录运行: `docker compose up -d`
