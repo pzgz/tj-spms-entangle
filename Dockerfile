@@ -33,7 +33,7 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
 COPY requirements.txt /tmp/
 
 ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
-ARG PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+ARG PIP_EXTRA_INDEX_URL=https://mirror.sjtu.edu.cn/pypi/web/simple
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=120 \
