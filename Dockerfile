@@ -3,6 +3,11 @@ FROM python:3.7.1-slim
 LABEL vendor="LAIC" \
     maintainer="ly.deng@gmail.com"
 
+RUN echo "deb https://mirrors.aliyun.com/debian-archive/debian stretch main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb https://mirrors.aliyun.com/debian-archive/debian-security stretch/updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.aliyun.com/debian-archive/debian stretch main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.aliyun.com/debian-archive/debian-security stretch/updates main contrib non-free" >> /etc/apt/sources.list
+
 RUN apt-get update && apt-get -y install \
 #    net-tools \
 #    iputils-ping \
