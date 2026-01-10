@@ -36,7 +36,7 @@ ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
 ARG PIP_EXTRA_INDEX_URL=https://mirror.sjtu.edu.cn/pypi/web/simple
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_DEFAULT_TIMEOUT=300 \
     PIP_RETRIES=10
 
 RUN pip config set global.index-url "${PIP_INDEX_URL}" && \
