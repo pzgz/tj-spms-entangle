@@ -40,8 +40,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_RETRIES=10
 
 RUN pip config set global.index-url "${PIP_INDEX_URL}" && \
-    pip config set global.extra-index-url "${PIP_EXTRA_INDEX_URL}" && \
-    pip install --no-cache-dir --progress-bar off -r /tmp/requirements.txt
+    pip config set global.extra-index-url "${PIP_EXTRA_INDEX_URL}"
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --progress-bar off -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
 
