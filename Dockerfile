@@ -31,16 +31,18 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
     ln -s /usr/local/instantclient/libocci.so.* /usr/local/instantclient/libocci.so
 
 COPY requirements.txt /tmp/
-COPY wheels/pip-25.3-py3-none-any.whl /tmp/
 
-# 离线升级 pip
-RUN pip install --no-index /tmp/pip-25.3-py3-none-any.whl && \
-    rm /tmp/pip-25.3-py3-none-any.whl
+ARG PIP_INDEX_URL=https://mirror.sjtu.edu.cn/pypi/web/simple
+ARG PIP_EXTRA_INDEX_URL=https://pypi.mirrors.ustc.edu.cn/simple/
 
-# 在线安装依赖
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip config set global.timeout 120 && \
-    pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip config set global.index-url "${PIP_INDEX_URL}" && \
+    pip config set global.extra-index-url "${PIP_EXTRA_INDEX_URL}" && \
+    pip config set global.trusted-host "pypi.mirrors.ustc.edu.cn,mirror.sjtu.edu.cn"
+
+RUN python -m pip install -U pip && \
+    pip --version
+
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
 
