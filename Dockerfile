@@ -31,23 +31,16 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
     ln -s /usr/local/instantclient/libocci.so.* /usr/local/instantclient/libocci.so
 
 COPY requirements.txt /tmp/
+COPY wheels/pip-25.3-py3-none-any.whl /tmp/
 
-ARG PIP_INDEX_URL=https://pypi.mirrors.ustc.edu.cn/simple/
-ARG PIP_EXTRA_INDEX_URL=https://mirror.sjtu.edu.cn/pypi/web/simple
+# 离线升级 pip
+RUN pip install --no-index /tmp/pip-25.3-py3-none-any.whl && \
+    rm /tmp/pip-25.3-py3-none-any.whl
 
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_DEFAULT_TIMEOUT=300 \
-    PIP_RETRIES=10
-
-RUN pip config set global.index-url "${PIP_INDEX_URL}" && \
-    pip config set global.extra-index-url "${PIP_EXTRA_INDEX_URL}" && \
-    pip config set global.trusted-host "pypi.mirrors.ustc.edu.cn,mirror.sjtu.edu.cn"
-
-RUN python -m pip install -U pip && \
-    pip --version
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --progress-bar off -r /tmp/requirements.txt
+# 在线安装依赖
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
+    pip config set global.timeout 120 && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
 
