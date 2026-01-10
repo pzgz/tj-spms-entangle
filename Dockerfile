@@ -32,14 +32,21 @@ RUN bsdtar -xvf /tmp/instantclient-basiclite-linux.x64-12.2.0.1.0.zip -C /usr/lo
 
 COPY requirements.txt /tmp/
 
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip install --no-cache-dir -r /tmp/requirements.txt
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+ARG PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10
+
+RUN pip config set global.index-url "${PIP_INDEX_URL}" && \
+    pip config set global.extra-index-url "${PIP_EXTRA_INDEX_URL}" && \
+    pip install --no-cache-dir --progress-bar off -r /tmp/requirements.txt
 
 WORKDIR /app/entangle/
 
 COPY src/ /app/entangle/src/
-
 RUN python -m zipapp src -o entangle.pyz && rm -rf src/
-
 ENTRYPOINT ["python", "entangle.pyz"]
+
 CMD ["--help"]
