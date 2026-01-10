@@ -47,7 +47,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 WORKDIR /app/entangle/
 
 COPY src/ /app/entangle/src/
-RUN python -m zipapp src -o entangle.pyz && rm -rf src/
+RUN python -m zipapp src -o entangle.pyz
 # ENTRYPOINT ["python", "entangle.pyz"]
 # CMD ["--help"]
 

@@ -57,4 +57,4 @@ python -m entangle -c ../etc/config.yml cmd3
 
 * 在生产服务器上checkout代码
 * 进入代码目录，使用以下命令打包: `docker build -t spms/entangle .`
-* 在`docker-compose.yml`的目录运行: `docker compose up -d`
+* 在`docker-compose.yml`的目录运行: `docker compose up -d`，如果需要强制重建容器: `docker compose up -d --force-recreate`
