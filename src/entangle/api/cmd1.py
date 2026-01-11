@@ -19,7 +19,7 @@ table_key_set = dict()
 
 def main(name="World"):
     """ Execute the command.
-    
+
     """
     logger.info("executing %s", name)
     duplicate(name)
@@ -39,11 +39,25 @@ def duplicate(table_name):
 
     # logger.debug('Config -> {}'.format(table_config))
 
-    sql = 'SELECT {} FROM {} WHERE {}'.format(
+    sql0 = 'SELECT {} FROM {} WHERE {}'.format(
         ','.join(table_config.get('fields').keys()),
         table_name,
         table_config.get('condition') if table_config.get('condition') else '1=1'
     )
+
+    if table_config.get('history'):
+        lastyear = datetime.today().year - 1
+        sql1 = 'SELECT {} FROM {}{} WHERE {}'.format(
+            ','.join(table_config.get('fields').keys()),
+            table_name, lastyear,
+            table_config.get('condition') if table_config.get('condition') else '1=1'
+        )
+        sql = 'select * from ({} union {})'.format(
+            sql0, sql1
+        )
+    else:
+        sql = sql0
+
     if table_config.get('order_by'):
         sql = '{} ORDER BY {}'.format(
             sql,
@@ -150,7 +164,7 @@ def duplicate(table_name):
 
     except Exception as e:
         logger.exception(e)
-    finally:
+    else:
         cursor.close()
         connection.close()
 

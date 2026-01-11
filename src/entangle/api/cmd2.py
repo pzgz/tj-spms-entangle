@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def main(name="World", year=None, history=False):
-    """ Execute the command.    
+    """ Execute the command.
     """
     logger.debug("executing cmd2 command with %s", name)
     table_config = config.entangle.get(name)
@@ -29,10 +29,17 @@ def main(name="World", year=None, history=False):
 
     current_year = datetime.now().year
     if history:
-        start_year = table_config.get('history')
-        if start_year:
-            for year in range(start_year, current_year):
-                _duplicate(name+str(year), table_config, year)
+        if year:
+            import csv
+            path = "{}.{}.csv".format(name, year)
+            with open(path, 'w', encoding='utf8', newline='') as f:
+                csv_writer = csv.writer(f)
+                _dump_to_csv(name, table_config,  year, csv_writer)
+        else:
+            start_year = table_config.get('history')
+            if start_year:
+                for year in range(start_year, current_year):
+                    _duplicate(name+str(year), table_config, year)
     else:
         _name = name.split('.')
         if _name[-1] == 'forward':
@@ -41,6 +48,64 @@ def main(name="World", year=None, history=False):
             _duplicate(_name[0], table_config)
     # app.debug = True
     # app.run(host='0.0.0.0', port=5000)
+
+
+def _dump_to_csv(table_name, table_config, year, csv_writer):
+    rule_config = table_config.get('rules')
+
+    fields = table_config.get('fields')
+
+    header = list(fields.values())
+    if table_name == 'PS_ETL_CW_PZD1':
+        header.remove('credit_amount')
+    logger.debug("header = %s", header)
+
+    csv_writer.writerow(header)
+
+    sql = 'SELECT {} FROM {} WHERE {}'.format(
+        ','.join(fields.keys()),
+        '{}{}'.format(table_name, year),
+        table_config.get('condition') if table_config.get('condition') else '1=1')
+    logger.info('Executing %s', sql)
+
+    try:
+        if table_config.get('source') == 'mysql':
+            connection = get_mysql_connection()
+        else:
+            connection = get_oracle_connection()
+
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        count = 0
+        while True:
+            rows = cursor.fetchmany(config.core.get('batch'))
+            if rows:
+                count += len(rows)
+                logger.debug('No.%d', count)
+            else:
+                break
+
+            for row in rows:
+                new_row = dict()
+                for _origin, _new in fields.items():
+                    origin_value = row.get(_origin)
+                    if isinstance(origin_value, str):
+                        origin_value = origin_value.strip()
+
+                    # 字段值映射判断
+                    map_rule = rule_config.get(_origin) if rule_config else None
+                    map_value = map_rule.get(origin_value) if map_rule else None
+                    new_row[_new] = map_value if map_value else origin_value
+
+                if table_name == 'PS_ETL_CW_PZD1':
+                    do_ps_etl_cw_pzd1(new_row)
+
+                csv_writer.writerow(list(new_row.values()))
+    except:
+        logger.exception('Error: unable to fetch data')
+    else:
+        cursor.close()
+        connection.close()
 
 
 def _duplicate(table_name, table_config, year=None):
@@ -95,7 +160,7 @@ def _duplicate(table_name, table_config, year=None):
         redis_conn.rename(temp_target, target)
     except:
         logger.exception('Error: unable to fetch data')
-    finally:
+    else:
         cursor.close()
         connection.close()
 
@@ -155,6 +220,11 @@ def _forward(table_name, table_config):
 
     except:
         logger.exception('Error: unable to fetch data')
-    finally:
+    else:
         cursor.close()
         connection.close()
+
+
+def do_ps_etl_cw_pzd1(row):
+    credit_amount = row.pop('credit_amount')
+    row['debit_amount'] = row.get('debit_amount') - credit_amount

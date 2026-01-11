@@ -1,8 +1,6 @@
-
 # -*- coding: utf-8 -*-
-
 """ Implement the cmd3 command.
-
+    增量模式：将科研系统数据同步到外部系统
 """
 import logging
 import json
@@ -27,20 +25,21 @@ queue = "exchange:s2f"
 backup_queue = '{}:backup'.format(queue)
 redis_conn = None
 
-SQL = Enum('SQL', ('UPSERT','MSGID'))
-SYNCMODE = Enum('SYNMODE', ('INCREMENT','COPY'))
+SQL = Enum('SQL', ('UPSERT', 'MSGID'))
+SYNCMODE = Enum('SYNMODE', ('INCREMENT', 'COPY'))
 
 sync_point = dict()
 
+
 def main(name="World"):
     """ Execute the command.
-    
+
     """
     global queue
     global backup_queue
     global redis_conn
     global spms_to_finance_entities_config
-    
+
     spms_to_finance_entities_config = config.spms_to_finance.get('entities')
     if config.spms_to_finance.get('real_time_queue'):
         queue = config.spms_to_finance.get('real_time_queue')
@@ -67,7 +66,7 @@ def _handleQueue():
                 _process_message(message)
             else:
                 t1 = arrow.now().timestamp
-                if t1 - t0 >= 300: # 5分钟检查全量同步队列
+                if t1 - t0 >= 300:  # 5分钟检查全量同步队列
                     _copy_message()
                     t0 = t1
                 else:
@@ -94,7 +93,7 @@ def _process_message(message, mode=SYNCMODE.INCREMENT):
         'category': _on_category,
         't_zzgl_xzjg': _on_t_zzgl_xzjg,
     }
-    try:        
+    try:
         msg = json.loads(message)
         entity = msg.get('entity')
 
@@ -105,7 +104,7 @@ def _process_message(message, mode=SYNCMODE.INCREMENT):
             if updated_at > last_updated_at:
                 sync_point[entity] = updated_at
             else:
-                hit_flag = False            
+                hit_flag = False
 
         if hit_flag:
             logger.info('Hit %s', message)
@@ -114,41 +113,44 @@ def _process_message(message, mode=SYNCMODE.INCREMENT):
     except ValueError as err:
         # 消息格式（JSON）错误
         logger.error('无效的消息: %s', message)
-        redis_conn.lrem(backup_queue, 1, message) if mode == SYNCMODE.INCREMENT else None
+        redis_conn.lrem(backup_queue, 1,
+                        message) if mode == SYNCMODE.INCREMENT else None
     except Exception as err:
         logger.exception(err)
         # 消息处理出错了，消息仍然留在backup队列中，backup队列监听器会将消息扔回queue中，重新处理
     else:
         # 消息处理成功，将其从backup queue中删除
-        redis_conn.lrem(backup_queue, 1, message) if mode == SYNCMODE.INCREMENT else None
+        redis_conn.lrem(backup_queue, 1,
+                        message) if mode == SYNCMODE.INCREMENT else None
         # 但是，如果业务处理时间过长（超过timeout时间），可能导致这条消息在backup队列存在较长时间，
         # backup队列监听器会将消息扔回queu中，但实际上消息已经被处理，结果是消息被重复处理
 
+
 def _map_message(entity, data):
     _config = spms_to_finance_entities_config.get(entity)
-    new_row = {'m_id':data.get('m_id'), 'last_ver':data.get('last_ver')}
+    new_row = {'m_id': data.get('m_id'), 'last_ver': data.get('last_ver')}
 
-    for _new, _origin  in _config.get('fields').items():
+    for _new, _origin in _config.get('fields').items():
         origin_value = data.get(_origin)
         new_row[_new] = origin_value
-    
+
     return new_row
 
-    
+
 def _on_project(message):
     data = message.get('data')
     data['m_id'] = message.get('id')
     data['last_ver'] = _to_date(message.get('created_at'))
 
-    data['_start_year'] = data.get('setup_date')[0:4]    
-    data['_end_year'] = data.get('end_date')[0:4]    
+    data['_start_year'] = data.get('setup_date')[0:4]
+    data['_end_year'] = data.get('end_date')[0:4]
     # data['start_date'] = _to_date(data.get('start_date'))
     # data['end_date'] = _to_date(data.get('end_date'))
     # data['setup_date'] = _to_date(data.get('setup_date'))
     # data['updated_at'] = _to_date(data.get('updated_at'))
-    # data['is_local_card'] = 'Y' if data.get('is_local_card') else 'N'   
+    # data['is_local_card'] = 'Y' if data.get('is_local_card') else 'N'
     entity = message.get('entity')
-    rows = [_map_message(entity, data)] 
+    rows = [_map_message(entity, data)]
 
     _save_message(entity, rows)
 
@@ -162,14 +164,14 @@ def _on_fund_item(message):
     data['last_ver'] = _to_date(message.get('created_at'))
 
     entity = message.get('entity')
-    rows = [_map_message(entity, data)] 
+    rows = [_map_message(entity, data)]
     _save_message(entity, rows)
 
 
 def _on_budgets(message):
     entity = message.get('entity')
     m_id = message.get('id')
-    m_created_at = _to_date(message.get('created_at'))    
+    m_created_at = _to_date(message.get('created_at'))
     data = message.get('data')
     budgets = data.get('budgets')
     rows = []
@@ -182,15 +184,17 @@ def _on_budgets(message):
 
         # josn数据中，属性plan_amt偶尔会有string类型的值,例如“3.1”
         amount = _budget.get('plan_amt')
-        _budget['plan_amt'] = amount if isinstance(amount, (int, float)) else float(amount)
-        
+        _budget['plan_amt'] = amount if isinstance(amount,
+                                                   (int,
+                                                    float)) else float(amount)
+
         rows.append(_budget)
 
     _save_message(entity, rows)
 
 
 def _on_category(message):
-    entity = message.get('entity')    
+    entity = message.get('entity')
     m_id = message.get('updated_at')
     m_created_at = _to_date(m_id)
     _type = dict()
@@ -210,8 +214,9 @@ def _on_category(message):
 
     _save_message(entity, rows)
 
+
 def _on_t_zzgl_xzjg(message):
-    entity = message.get('entity')    
+    entity = message.get('entity')
     m_id = message.get('updated_at')
     m_created_at = _to_date(m_id)
     rows = []
@@ -237,10 +242,13 @@ def _save_message(entity, rows):
             cursor = db.cursor()
             db.begin()
             try:
-                if len(rows) > 1:
+                if len(rows) > 0:
+                    if sql[1]:
+                        cursor.execute(sql[1])
+
                     cursor.executemany(sql[0], rows)
-                else:
-                    cursor.execute(sql[0], rows[0])
+                # else:
+                #     cursor.execute(sql[0], rows[0])
             except cx_Oracle.DatabaseError as err:
                 db.rollback()
                 raise
@@ -255,7 +263,7 @@ def _save_message(entity, rows):
 def _get_message_id(entity, data):
     sql = _get_statement(entity, SQL.MSGID)
     pk = sql[1]
-    args = { k:v for (k,v) in data.items() if k in pk}
+    args = {k: v for (k, v) in data.items() if k in pk}
     conn = get_oracle_connection()
     cursor = conn.cursor()
     cursor.execute(sql[0], args)
@@ -267,35 +275,44 @@ def _get_message_id(entity, data):
 
 def _get_statement(entity, sql=SQL.UPSERT):
     _config = spms_to_finance_entities_config.get(entity)
-    fields = list(map(lambda x: x.lower(), _config.get('fields').keys())) + ['m_id', 'last_ver']
+    fields = list(map(lambda x: x.lower(),
+                      _config.get('fields').keys())) + ['m_id', 'last_ver']
     pk = list(map(lambda x: x.lower(), _config.get('pk')))
-    update_sql = _config.get('update_sql')
+
+    delete_sql = None
+    if _config.get('mode', 'increment') == 'copy':
+        delete_sql = "delete from {}".format(_config.get('target'))
+
     get_message_id_sql = _config.get('get_message_id_sql')
+
+    update_sql = _config.get('update_sql')
     if not update_sql:
         non_pk_fields = list(set(fields).difference(set(pk)))
 
         get_message_id_sql = 'select m_id from {} where {}'.format(
             _config.get('target'),
-            ' AND '.join(list(map(lambda x: '{}=:{}'.format(x, x), pk)))
-        )
+            ' AND '.join(list(map(lambda x: '{}=:{}'.format(x, x), pk))))
 
         update_sql = '''
-            merge into {} t using dual on ({})  
-                when not matched then insert ({}) values ({})  
-                when matched then update set {}  
+            merge into {} t using dual on ({})
+                when not matched then insert ({}) values ({})
+                when matched then update set {}
         '''.format(
             _config.get('target'),
-            ' AND '.join(list(map(lambda x: 't.{}=:{}'.format(x, x), pk))),
-            ','.join(fields),
+            ' AND '.join(list(map(lambda x: 't.{}=:{}'.format(x, x),
+                                  pk))), ','.join(fields),
             ','.join(list(map(lambda x: ':{}'.format(x), fields))),
-            ','.join(list(map(lambda x: '{}=:{}'.format(x, x), non_pk_fields)))
-        )
+            ','.join(list(map(lambda x: '{}=:{}'.format(x, x),
+                              non_pk_fields))))
         _config['update_sql'] = update_sql
         _config['get_message_id_sql'] = get_message_id_sql
         logger.debug('%s - sql1 = %s', entity, get_message_id_sql)
         logger.debug('%s - sql2 = %s', entity, update_sql)
 
-    return (update_sql,fields) if sql == SQL.UPSERT else (get_message_id_sql, pk)
+    if sql == SQL.UPSERT:
+        return (update_sql, delete_sql)
+    else:
+        return (get_message_id_sql, pk)
 
 
 def _to_date(src_date):
@@ -309,10 +326,12 @@ def _to_date(src_date):
     else:
         return None
 
+
 def _handleBackupQueue():
     handler = BackupQueueHandler(1, queue)
     handler.start()
     # handler.join()
+
 
 class BackupQueueHandler(threading.Thread):
     def __init__(self, threadID, queue):
@@ -348,6 +367,6 @@ class BackupQueueHandler(threading.Thread):
                 logger.error(err)
                 pipe.unwatch()
             finally:
-                time.sleep(5)           
+                time.sleep(5)
 
         logger.info('Exit listener %s.', self.__backup_queue)
